@@ -32,42 +32,37 @@ class VatBal:
         self.arguments = parser.parse_args(args)
         self.endpoint = self.arguments.vulcanize_host
         self.api_key = self.arguments.vulcanize_api_key
+        self.vulc_query = self.arguments.vulcanize_query_file.read()
 
     def main(self):
         auction_config = json.loads(self.arguments.auction_config.read())
 
         for keeper in auction_config['members']:
-            vault_data = self.run_query(self.arguments.vulcanize_query_file.read(), keeper['config']['address'], self.arguments.num_entries)
+            vault_data = self.run_query(self.vulc_query, keeper['config']['address'], self.arguments.num_entries)
             pprint(vault_data)
 
     def run_query(self, vulc_query, address, num_entries: int):
         assert isinstance(num_entries, int)
 
-        edges = []
         data_needed = True
         page_size = 1000
-        offset = 0
-        key = None
-        while data_needed:
-            headers = {'Authorization': 'Basic ' + self.api_key}
-            variables = {
-                "numEntries": num_entries,
-                "address": address,
-            }
-            print(f"vulc_query - {vulc_query}")
-            response = requests.post(self.endpoint, json={'query': vulc_query, 'variables': json.dumps(variables)}, timeout=10.0, headers=headers)
+        headers = {'Authorization': 'Basic ' + self.api_key}
+        variables = {
+            "numEntries": num_entries,
+            "address": address,
+        }
+        response = requests.post(self.endpoint, json={'query': vulc_query, 'variables': json.dumps(variables)}, timeout=10.0, headers=headers)
 
-            if not response.ok:
-                error_msg = f"{response.status_code} {response.reason} ({response.text})"
-                raise RuntimeError(f"Query failed: {error_msg}")
+        if not response.ok:
+            error_msg = f"{response.status_code} {response.reason} ({response.text})"
+            raise RuntimeError(f"Query failed: {error_msg}")
 
-            result = json.loads(response.text)
-            if 'data' not in result:
-                raise RuntimeError(f"Vulcanize reported error: {result}")
 
-            print(f"result here - {result}")
+        result = json.loads(response.text)
+        if 'data' not in result:
+            raise RuntimeError(f"Vulcanize reported error: {result}")
 
-            return result
+        return result['data']
 
 
 if __name__ == '__main__':
