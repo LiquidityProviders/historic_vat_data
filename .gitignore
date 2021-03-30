@@ -1,0 +1,5 @@
+pull_vat_data/__pycache__/
+env
+start.sh
+vat_balances.log
+auction_config_2020.json

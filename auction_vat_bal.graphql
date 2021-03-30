@@ -1,0 +1,11 @@
+query($numEntries: Int, $address: String) {
+  allVatDais(first:$numEntries,
+    condition:{guy: $address}) {
+    nodes {
+      dai
+      headerByHeaderId {
+        blockNumber
+      }
+    }
+  }
+}
