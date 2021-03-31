@@ -1,5 +1,5 @@
-query($numEntries: Int, $address: String) {
-  allVatDais(first:$numEntries,
+query($pageSize: Int, $address: String) {
+  allVatDais(first:$pageSize,
     condition:{guy: $address}) {
     nodes {
       dai
