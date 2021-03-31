@@ -1,5 +1,5 @@
 # Pull Vat Data
-This repository is used to retrieve historical Vat Dai balances.
+This repository is used to retrieve historical Vat Dai balances from the Vulcanize API. To learn more about Graphql and Vulcanize see https://maker-data-api-documentation.now.sh/documentation
 
 ## setup
 ```
