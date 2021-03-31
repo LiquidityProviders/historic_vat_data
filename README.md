@@ -1,7 +1,7 @@
 # Pull Vat Data
 This repository is used to retrieve historical Vat Dai balances.
 
-# setup
+## setup
 ```
 git clone https://github.com/LiquidityProviders/historic_vat_data.git
 cd historic_vat_data
