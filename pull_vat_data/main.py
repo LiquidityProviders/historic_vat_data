@@ -37,6 +37,11 @@ class VatBal:
         self.vulc_query = self.arguments.vulcanize_query_file.read()
         self.page_size = 1500
 
+        print(f"URL (Vulcanize) Endpoint - {self.endpoint}")
+        print(f"Block number we are querying before or at - {self.arguments.before_or_equal_block}")
+
+        print(f"Repository that was used to generate this output: https://github.com/LiquidityProviders/historic_vat_data.git")
+
 
     def main(self):
         auction_config = json.loads(self.arguments.auction_config.read())
