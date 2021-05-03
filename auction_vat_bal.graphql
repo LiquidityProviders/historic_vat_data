@@ -1,11 +1,16 @@
-query($pageSize: Int, $address: String) {
-  allVatDais(first:$pageSize,
-    condition:{guy: $address}) {
-    nodes {
-      dai
-      headerByHeaderId {
-        blockNumber
-      }
-    }
-  }
-}
+query ($pageSize: Int, $address: String, $numOfTx: Int){
+   allVatDais(first: $pageSize,
+     condition:{guy: $address}) {
+     nodes {
+       dai
+       headerByHeaderId {
+         blockNumber
+        	transactionsByHeaderId(first:$numOfTx) {
+            nodes {
+              hash
+            }
+          }
+       }
+     }
+   }
+ }

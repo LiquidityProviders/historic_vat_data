@@ -4,6 +4,7 @@ import requests
 import argparse
 import json
 
+from time import sleep
 from pymaker import Address
 from pprint import pprint
 
@@ -36,34 +37,39 @@ class VatBal:
         self.vulc_query = self.arguments.vulcanize_query_file.read()
         self.page_size = 1500
 
+
     def main(self):
         auction_config = json.loads(self.arguments.auction_config.read())
         combined_results = {}
+        total = 0
 
         for keeper in auction_config['members']:
-            vat_data = self.run_query(self.vulc_query, Address(keeper['config']['address']))
-
-            if vat_data['allVatDais']['nodes']:
-                if len(vat_data['allVatDais']['nodes']) == self.page_size:
+            unordered_vat_data = self.run_query(self.vulc_query, Address(keeper['config']['address']))
+            vat_data = self.sort_vat_data_by_block_number(unordered_vat_data['allVatDais']['nodes'])
+            if vat_data:
+                if len(vat_data) == self.page_size:
                     raise RuntimeError(f"Results returned exceed page_size. Please make page size larger than {self.page_size} ")
 
-                dai_bal, block_number = self.get_data_closest_to_block(self.arguments.before_or_equal_block, vat_data['allVatDais']['nodes'])
+                dai_bal, block_number, transactions = self.get_data_closest_to_block(self.arguments.before_or_equal_block, vat_data)
                 combined_results[keeper['id']] = {
                         'DAI balance': dai_bal,
                         'block number': block_number,
-                        'Address': keeper['config']['address']
+                        'address': keeper['config']['address'],
+                        'transactions': transactions
                         }
+
+                total += float(combined_results[keeper['id']]['DAI balance'])
 
             else:
                 combined_results[keeper['id']] = {
                         'DAI balance': 0.0,
-                        'Address': keeper['config']['address'],
-                        'block number': 'This address has no Vat Dai history'
+                        'address': keeper['config']['address'],
+                        'block number': 'This address has no Vat Dai history',
+                        'transactions': 'This address has no Vat Dai history'
                         }
 
-        print(f"Block closest to desired timestamp: {self.arguments.before_or_equal_block}")
-        print(f"Addresses Dai Vat balances before or equal to block {self.arguments.before_or_equal_block}:")
         pprint(combined_results)
+        print(f"Total DAI in Vat's: {total}")
 
 
     def get_data_closest_to_block(self, target_block, vat_data):
@@ -74,9 +80,15 @@ class VatBal:
             if int(vat_entry['headerByHeaderId']['blockNumber']) >= target_block:
                 return_vat_entry = last_vat_entry
                 break
-
+    # "{int(return_vat_entry['dai']) / 10**45:,.2f}"
             last_vat_entry = vat_entry
-        return (f"{int(return_vat_entry['dai']) / 10**45:,.2f}", return_vat_entry['headerByHeaderId']['blockNumber'])
+        return (int(return_vat_entry['dai']) / 10**45, \
+                return_vat_entry['headerByHeaderId']['blockNumber'], \
+                return_vat_entry['headerByHeaderId']['transactionsByHeaderId']['nodes'])
+
+
+    def sort_vat_data_by_block_number(self, unordered_vat_data):
+        return sorted(unordered_vat_data, key=lambda i: int(i['headerByHeaderId']['blockNumber']))
 
 
     def run_query(self, vulc_query, address):
@@ -87,6 +99,7 @@ class VatBal:
         variables = {
             "pageSize": self.page_size,
             "address": address.address,
+            "numOfTx": 100
         }
         response = requests.post(self.endpoint, json={'query': vulc_query, 'variables': json.dumps(variables)}, timeout=10.0, headers=headers)
 
@@ -94,8 +107,8 @@ class VatBal:
             error_msg = f"{response.status_code} {response.reason} ({response.text})"
             raise RuntimeError(f"Query failed: {error_msg}")
 
-
         result = json.loads(response.text)
+
         if 'data' not in result:
             raise RuntimeError(f"Vulcanize reported error: {result}")
 
